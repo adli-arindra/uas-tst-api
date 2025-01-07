@@ -1,10 +1,14 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
 import os
-import cv2
 import base64
 from model import opencv, rf, facedata as fd
+from io import BytesIO
+from PIL import Image
+
 
 app = Flask(__name__)
+CORS(app)
 
 UPLOAD_FOLDER = 'uploads'
 RESULT_FOLDER = 'results'
@@ -13,27 +17,44 @@ os.makedirs(RESULT_FOLDER, exist_ok=True)
 
 @app.route('/haircut', methods=['POST'])
 def process_image():
-    if 'image' not in request.files:
-        return jsonify({'error': 'No image file provided'}), 400
+    try:
+        os.remove("/results/image.png")
+        os.remove("uploads/image.png")
+    except:
+        pass
+    data = request.get_json()
+    if 'image' not in data:
+        return jsonify({'error': 'No image provided'}), 400
 
-    file = request.files['image']
-    if file.filename == '':
-        return jsonify({'error': 'Empty filename'}), 400
+    image_data = data['image']
+    
+    if image_data.startswith('data:image'):
+        header, encoded = image_data.split(',', 1)
+    else:
+        encoded = image_data
 
-    file_path = os.path.join(UPLOAD_FOLDER, file.filename)
-    file.save(file_path)
+    try:
+        image_binary = base64.b64decode(encoded)
+    except Exception as e:
+        return jsonify({'error': 'Invalid base64 encoding', 'message': str(e)}), 400
+    
+    file_name = 'image.png'
+    file_path = os.path.join(UPLOAD_FOLDER, file_name)
+    with open(file_path, 'wb') as file:
+        file.write(image_binary)
 
-    result_path, haircut_data = process(file.filename)
+    result_path, haircut_data = process(file_name)
 
-    # Convert the image to base64
-    with open(result_path, "rb") as image_file:
-        encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
+    image_url = f"/results/{file_name}"
 
-    # Return JSON response with both image and haircut data
     return jsonify({
-        "image": encoded_image,
-        "haircut_data": haircut_data.arr()
+        "image_url": image_url,
+        "head_shape": haircut_data
     })
+
+@app.route('/results/<filename>')
+def serve_result_image(filename):
+    return send_from_directory(RESULT_FOLDER, filename)
 
 def process(file_name: str):
     ratio = opencv.face_shape(os.path.join(UPLOAD_FOLDER, file_name),
@@ -41,8 +62,15 @@ def process(file_name: str):
                               output_path=os.path.join(RESULT_FOLDER, file_name))
     predict = rf.predict(ratio)
     face_data = fd.faceData(predict, True)
-    haircut_data = fd.haircutData(face_data.arr(), True)
-    return (os.path.join(RESULT_FOLDER, file_name), haircut_data)
+    ret = face_data.getHeadShape()
+    
+    return (os.path.join(RESULT_FOLDER, file_name), ret)
+
+class Config:
+    DEBUG = False
+    TESTING = False
+    FLASK_ENV = 'production'
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.config.from_object(Config)
+    app.run(debug=False)

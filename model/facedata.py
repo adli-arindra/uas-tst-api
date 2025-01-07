@@ -26,6 +26,24 @@ class faceData:
         return [self.diamond, self.oblong, self.oval, self.pear,
                self.round, self.square, self.tri]
     
+    def getHeadShape(self):
+        maxPercentage = max(self.arr())
+        if self.diamond == maxPercentage:
+            return "diamond"
+        elif self.oblong == maxPercentage:
+            return "oblong"
+        elif self.oval == maxPercentage:
+            return "oval"
+        elif self.pear == maxPercentage:
+            return "pear"
+        elif self.round == maxPercentage:
+            return "round"
+        elif self.square == maxPercentage:
+            return "square"
+        elif self.tri == maxPercentage:
+            return "triangle"
+        return "none"
+    
 class haircutData:
     def __init__(self, array, long, count = 1):
         self.diamond = array[0]

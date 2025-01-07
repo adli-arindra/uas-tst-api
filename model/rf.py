@@ -23,6 +23,7 @@ def predict(arr):
     rf = joblib.load("model/model.pkl")
 
     arr = np.array(arr).reshape(1, -1)
+    df = pd.DataFrame(arr, columns=["r1", "r2", "r3", "r4", "r5", "r6", "r7"])
     pp = rf.predict_proba(arr)
 
     return getPercentages(pp)
