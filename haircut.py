@@ -66,11 +66,6 @@ def process(file_name: str):
     
     return (os.path.join(RESULT_FOLDER, file_name), ret)
 
-class Config:
-    DEBUG = False
-    TESTING = False
-    FLASK_ENV = 'production'
 
 if __name__ == '__main__':
-    app.config.from_object(Config)
-    app.run(debug=False)
+    app.run(host="0.0.0.0", port=5000, debug=False)

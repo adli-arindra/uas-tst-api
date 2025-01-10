@@ -1,0 +1,5 @@
+/.venv/
+/results/*
+/uploads/*
+/model/dataset.csv
+/test_fetch.py
